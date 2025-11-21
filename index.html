@@ -1,0 +1,1128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Warehouse & Fleet MVP — Local Demo</title>
+
+  <!-- FontAwesome Icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏭</text></svg>">
+
+  <style>
+    :root{
+      --bg:#0f1724;            /* deep slate */
+      --card:#0b1220;          /* slightly lighter */
+      --muted:#9aa8b2;
+      --accent:#10b981;        /* teal-green */
+      --accent-2:#6366f1;      /* indigo */
+      --danger:#ef4444;
+      --glass: rgba(255,255,255,0.03);
+      --glass-2: rgba(255,255,255,0.02);
+      --radius:12px;
+      --maxw:1200px;
+      --gap:16px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      color: #dbeafe;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071025 0%, #081822 60%);-webkit-font-smoothing:antialiased}
+    .app{max-width:var(--maxw);margin:28px auto;padding:20px;display:grid;grid-template-columns:260px 1fr;gap:var(--gap);min-height:80vh}
+    /* SIDEBAR */
+    .sidebar{background:linear-gradient(180deg,var(--card), rgba(6,10,16,0.8));border-radius:var(--radius);padding:18px;display:flex;flex-direction:column;gap:12px}
+    .brand{display:flex;align-items:center;gap:10px}
+    .logo {width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 6px 20px rgba(16,185,129,0.08)}
+    .brand h1{font-size:16px;margin:0}
+    .muted{color:var(--muted);font-size:13px}
+    nav{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;color:var(--muted);cursor:pointer}
+    .nav-item.active{background:linear-gradient(90deg, rgba(99,102,241,0.12), rgba(16,185,129,0.06));color: #e6eef9}
+    .nav-item i{width:18px;text-align:center}
+    .sidebar .small{font-size:12px;color:var(--muted);margin-top:auto}
+    .user-mini{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:var(--glass-2)}
+    .avatar{width:38px;height:38px;border-radius:9px;background:linear-gradient(180deg,#0ea5a4,#3b82f6);display:flex;align-items:center;justify-content:center;font-weight:700}
+
+    /* MAIN AREA */
+    .main{display:flex;flex-direction:column;gap:16px}
+    header.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .search{flex:1;display:flex;align-items:center;gap:10px;background:var(--glass);padding:10px;border-radius:12px}
+    .search input{flex:1;background:transparent;border:0;color:inherit;outline:none}
+    .actions{display:flex;gap:8px;align-items:center}
+    .btn{padding:9px 12px;border-radius:10px;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#041022;border:0;cursor:pointer;box-shadow:0 6px 18px rgba(99,102,241,0.12);font-weight:600}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:16px;border-radius:12px}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .stat{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02))}
+    .stat .num{font-size:20px;font-weight:700}
+    .two-col{display:grid;grid-template-columns:1fr 380px;gap:12px;align-items:start}
+
+    /* PRODUCT LIST */
+    .products{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+    .product{padding:12px;border-radius:10px;background:var(--glass);display:flex;flex-direction:column;gap:8px}
+    .product .meta{display:flex;justify-content:space-between;align-items:center}
+    .product .title{font-weight:700}
+    .badge{font-size:12px;padding:6px;border-radius:8px;background:rgba(255,255,255,0.03)}
+    .stock-low{background:linear-gradient(90deg, rgba(239,68,68,0.12), rgba(239,68,68,0.03));color:var(--danger)}
+
+    /* TABLES */
+    table{width:100%;border-collapse:collapse;color:var(--muted);font-size:14px}
+    th,td{text-align:left;padding:10px;border-bottom:1px dashed rgba(255,255,255,0.02)}
+    th{color:var(--muted);font-weight:600;font-size:13px}
+    .row-actions button{margin-right:6px}
+
+    /* FORMS */
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input[type="text"], input[type="number"], select, textarea{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit}
+    textarea{min-height:80px;resize:vertical}
+
+    /* MODAL */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,12,0.6);display:none;align-items:center;justify-content:center;padding:20px;z-index:80}
+    .modal{background:linear-gradient(180deg,#081224,#061222);padding:18px;border-radius:12px;max-width:720px;width:100%}
+    .modal.show{display:block}
+
+    /* LOGIN SCREEN (centered overlay) */
+    .login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:90}
+    .login-card{width:420px;background:linear-gradient(180deg,#071229,#061125);padding:26px;border-radius:14px;box-shadow:0 20px 50px rgba(2,6,23,0.6)}
+    .logo-large{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+    .logo-large .logo{width:54px;height:54px;border-radius:12px;font-size:22px}
+
+    footer{color:var(--muted);font-size:13px;text-align:center;padding:12px;margin-top:6px}
+
+    /* responsive */
+    @media (max-width:980px){
+      .app{grid-template-columns:1fr; padding:12px}
+      .two-col{grid-template-columns:1fr}
+      .grid{grid-template-columns:repeat(2,1fr)}
+      .products{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+    }
+  </style>
+</head>
+<body>
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <div class="logo-large">
+        <div class="logo"><i class="fa-solid fa-warehouse"></i></div>
+        <div>
+          <h2 style="margin:0">Warehouse & Fleet — Demo</h2>
+          <div class="muted">Local demo — data saved in browser storage</div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px">
+        <label>User ID</label>
+        <input id="loginUser" type="text" placeholder="e.g. EMP001 or ADMIN01">
+      </div>
+      <div style="margin-top:12px">
+        <label>Password</label>
+        <input id="loginPass" type="password" placeholder="demo password">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
+        <button class="btn" id="btnLogin"><i class="fa-solid fa-right-to-bracket"></i>&nbsp;Sign in</button>
+        <button class="btn ghost" id="btnSeedDemo"><i class="fa-solid fa-database"></i>&nbsp;Seed demo data</button>
+        <div style="margin-left:auto;color:var(--muted);font-size:13px">Try: <strong>ADMIN01</strong> / <strong>WARE01</strong> / <strong>EMP001</strong></div>
+      </div>
+
+      <div style="margin-top:14px;color:var(--muted);font-size:13px">
+        This is a front-end prototype. To connect to Supabase later, swap the storage & auth functions in the script.
+      </div>
+    </div>
+  </div>
+
+  <div id="app" class="app" style="display:none">
+    <!-- Sidebar -->
+    <aside class="sidebar card">
+      <div class="brand">
+        <div class="logo"><i class="fa-solid fa-boxes-stacked"></i></div>
+        <div>
+          <h1>StockFlow</h1>
+          <div class="muted">Warehouse & Fleet MVP</div>
+        </div>
+      </div>
+
+      <nav id="nav">
+        <div class="nav-item active" data-view="dashboard"><i class="fa-solid fa-chart-line"></i> Dashboard</div>
+        <div class="nav-item" data-view="products"><i class="fa-solid fa-sitemap"></i> Products</div>
+        <div class="nav-item" data-view="requests"><i class="fa-solid fa-file-lines"></i> Requests</div>
+        <div class="nav-item" data-view="fleet"><i class="fa-solid fa-truck"></i> Fleet</div>
+        <div class="nav-item" data-view="reports"><i class="fa-solid fa-chart-pie"></i> Reports</div>
+        <div class="nav-item" data-view="users"><i class="fa-solid fa-users"></i> Users</div>
+      </nav>
+
+      <div class="small">
+        <div class="user-mini">
+          <div class="avatar" id="sidebarAvatar">A</div>
+          <div>
+            <div id="sidebarName">Anonymous</div>
+            <div class="muted" id="sidebarRole">Role</div>
+          </div>
+        </div>
+        <div style="margin-top:10px" class="muted">Local demo saved to <strong>localStorage</strong></div>
+      </div>
+    </aside>
+
+    <!-- Main area -->
+    <main class="main">
+      <header class="top card">
+        <div style="display:flex;gap:12px;width:100%;align-items:center">
+          <div class="search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input id="globalSearch" placeholder="Search products, requests or employees...">
+          </div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="btn ghost" id="btnToggleSidebar"><i class="fa-solid fa-bars"></i></button>
+            <button class="btn ghost" id="btnLogout"><i class="fa-solid fa-right-from-bracket"></i>&nbsp;Logout</button>
+          </div>
+        </div>
+
+        <div class="actions">
+          <div style="text-align:right;margin-right:6px">
+            <div class="muted" id="welcomeLine">Welcome</div>
+            <div style="font-weight:700" id="welcomeName">User</div>
+          </div>
+          <button class="btn" id="btnQuickAdd"><i class="fa-solid fa-plus"></i>&nbsp;Quick Request</button>
+        </div>
+      </header>
+
+      <!-- Dashboard view -->
+      <section id="view-dashboard" class="card">
+        <div class="two-col">
+          <div>
+            <div class="grid" style="margin-bottom:12px">
+              <div class="stat">
+                <div class="muted">Total Products</div>
+                <div class="num" id="statProducts">0</div>
+                <div class="muted" id="statTopProduct">Top: —</div>
+              </div>
+              <div class="stat">
+                <div class="muted">Total Requests</div>
+                <div class="num" id="statRequests">0</div>
+                <div class="muted" id="statPending">Pending: 0</div>
+              </div>
+              <div class="stat">
+                <div class="muted">Fleet Activities</div>
+                <div class="num" id="statFleet">0</div>
+                <div class="muted" id="statLastFleet">Last: —</div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-bottom:12px">
+              <h3 style="margin:0 0 12px 0">Products</h3>
+              <div class="products" id="dashProducts"></div>
+            </div>
+
+            <div class="card">
+              <h3 style="margin:0 0 12px 0">Recent Requests</h3>
+              <table>
+                <thead><tr><th>Request ID</th><th>Employee</th><th>Product</th><th>Qty</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody id="recentRequests"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <aside>
+            <div class="card" style="margin-bottom:12px">
+              <h4 style="margin:0 0 12px 0">Quick Actions</h4>
+              <button class="btn" onclick="showView('products')"><i class="fa-solid fa-sitemap"></i>&nbsp;Manage Products</button>
+              <div style="height:8px"></div>
+              <button class="btn ghost" onclick="showView('requests')"><i class="fa-solid fa-file-lines"></i>&nbsp;Review Requests</button>
+              <div style="height:8px"></div>
+              <button class="btn ghost" onclick="showView('reports')"><i class="fa-solid fa-chart-simple"></i>&nbsp;View Reports</button>
+            </div>
+
+            <div class="card">
+              <h4 style="margin:0 0 12px 0">Trends</h4>
+              <canvas id="trendChart" height="200"></canvas>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- Products view -->
+      <section id="view-products" class="card" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="margin:0">Products</h3>
+          <div style="display:flex;gap:8px">
+            <button class="btn" id="btnAddProduct"><i class="fa-solid fa-plus"></i>&nbsp;Add Product</button>
+            <button class="btn ghost" id="btnImportSample"><i class="fa-solid fa-file-import"></i>&nbsp;Seed Sample Products</button>
+          </div>
+        </div>
+
+        <div class="products" id="productList"></div>
+
+        <div style="margin-top:12px" class="card">
+          <h4 style="margin:0 0 12px 0">All Products (table)</h4>
+          <table>
+            <thead><tr><th>Product</th><th>Category</th><th>Stock</th><th>Added</th><th>Actions</th></tr></thead>
+            <tbody id="productTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Requests view -->
+      <section id="view-requests" class="card" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="margin:0">Product Requests</h3>
+          <div style="display:flex;gap:8px">
+            <button class="btn" id="btnNewRequest"><i class="fa-solid fa-plus"></i>&nbsp;New Request</button>
+            <select id="filterRequests" style="padding:8px;border-radius:8px;background:transparent;color:inherit;">
+              <option value="all">All</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="denied">Denied</option>
+            </select>
+          </div>
+        </div>
+
+        <table>
+          <thead><tr><th>ID</th><th>Employee</th><th>Product</th><th>Qty</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="requestsTable"></tbody>
+        </table>
+      </section>
+
+      <!-- Fleet view -->
+      <section id="view-fleet" class="card" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="margin:0">Fleet Activities</h3>
+          <button class="btn" id="btnAddFleet"><i class="fa-solid fa-truck-fast"></i>&nbsp;Add Activity</button>
+        </div>
+
+        <div class="card" style="margin-bottom:12px">
+          <h4 style="margin:0 0 12px 0">Log Activity</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div>
+              <label>Vehicle ID</label>
+              <input id="fleetVehicle" placeholder="VHC001">
+            </div>
+            <div>
+              <label>Driver</label>
+              <input id="fleetDriver" placeholder="Driver name">
+            </div>
+            <div>
+              <label>Activity Type</label>
+              <select id="fleetType">
+                <option>Delivery</option>
+                <option>Pickup</option>
+                <option>Transfer</option>
+                <option>Maintenance</option>
+              </select>
+            </div>
+            <div>
+              <label>Related Request (optional)</label>
+              <select id="fleetRequest">
+                <option value="">None</option>
+              </select>
+            </div>
+            <div style="grid-column:1/-1">
+              <label>Notes</label>
+              <textarea id="fleetNotes"></textarea>
+            </div>
+            <div style="grid-column:1/-1;text-align:right">
+              <button class="btn" id="btnSaveFleet">Save Activity</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h4 style="margin:0 0 12px 0">All Activities</h4>
+          <table>
+            <thead><tr><th>ID</th><th>Vehicle</th><th>Driver</th><th>Type</th><th>Date</th><th>Request</th></tr></thead>
+            <tbody id="fleetTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Reports view -->
+      <section id="view-reports" class="card" style="display:none">
+        <h3 style="margin:0 0 12px 0">Reports & Charts</h3>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="card">
+            <h4 style="margin:0 0 12px 0">Requests by Status</h4>
+            <canvas id="statusChart" height="200"></canvas>
+          </div>
+
+          <div class="card">
+            <h4 style="margin:0 0 12px 0">Top Products</h4>
+            <canvas id="topChart" height="200"></canvas>
+          </div>
+
+          <div class="card" style="grid-column:1/-1">
+            <h4 style="margin:0 0 12px 0">Requests Over Time</h4>
+            <canvas id="timeChart" height="120"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Users view -->
+      <section id="view-users" class="card" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="margin:0">Users</h3>
+          <button class="btn" id="btnAddUser"><i class="fa-solid fa-user-plus"></i>&nbsp;Add User</button>
+        </div>
+
+        <table>
+          <thead><tr><th>Code</th><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
+          <tbody id="usersTable"></tbody>
+        </table>
+      </section>
+
+      <footer class="muted">Built for demo • LocalStorage backend • Designed for GitHub Pages</footer>
+    </main>
+  </div>
+
+  <!-- Modal backdrop -->
+  <div id="modal" class="modal-backdrop">
+    <div class="modal card" id="modalContent">
+      <!-- Content is injected by JS -->
+    </div>
+  </div>
+
+<script>
+/* -------------------------
+  LOCAL STORAGE KEYS & UTIL
+   ------------------------- */
+const LS = {
+  users: 'mvp_users_v1',
+  products: 'mvp_products_v1',
+  requests: 'mvp_requests_v1',
+  fleet: 'mvp_fleet_v1'
+};
+
+function save(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
+function load(key){ const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; }
+
+/* -------------------------
+  INITIAL SEED DATA
+   ------------------------- */
+function seedDemoData(force=false){
+  // users
+  const existing = load(LS.users);
+  if(existing && !force) return;
+  const users = [
+    { id: 'ADMIN01', code: 'ADMIN01', name:'Michael (Super Admin)', email:'admin@demo.com', role:'super_admin', pass:'admin123' },
+    { id: 'WARE01', code: 'WARE01', name:'Wanda (Warehouse)', email:'warehouse@demo.com', role:'warehouse_admin', pass:'ware123' },
+    { id: 'EMP001', code: 'EMP001', name:'Alice', email:'alice@demo.com', role:'employee', pass:'emp123' },
+    { id: 'EMP002', code: 'EMP002', name:'Ben', email:'ben@demo.com', role:'employee', pass:'emp123' },
+    { id: 'EMP003', code: 'EMP003', name:'Chris', email:'chris@demo.com', role:'employee', pass:'emp123' },
+    { id: 'EMP004', code: 'EMP004', name:'Diana', email:'diana@demo.com', role:'employee', pass:'emp123' },
+    { id: 'EMP005', code: 'EMP005', name:'Eve', email:'eve@demo.com', role:'employee', pass:'emp123' }
+  ];
+  save(LS.users, users);
+
+  // products
+  const products = [
+    { id: 'P001', name:'Cement Bag 50kg', category:'Building', stock:200, img:'', added: new Date().toISOString() },
+    { id: 'P002', name:'Steel Rod 10mm', category:'Materials', stock:150, img:'', added: new Date().toISOString() },
+    { id: 'P003', name:'Safety Helmet', category:'PPE', stock:80, img:'', added: new Date().toISOString() },
+    { id: 'P004', name:'High-Vis Jacket', category:'PPE', stock:35, img:'', added: new Date().toISOString() },
+    { id: 'P005', name:'Survey Tape 30m', category:'Equipment', stock:12, img:'', added: new Date().toISOString() }
+  ];
+  save(LS.products, products);
+
+  // requests
+  const requests = [
+    { id:'R-1001', productId:'P001', employee:'EMP001', qty:10, date: new Date().toISOString(), status:'approved', approvedBy:'WARE01', notes:'' },
+    { id:'R-1002', productId:'P003', employee:'EMP002', qty:2, date: new Date().toISOString(), status:'pending', approvedBy:null, notes:'' },
+  ];
+  save(LS.requests, requests);
+
+  // fleet
+  const fleet = [
+    { id:'F-1', vehicle:'VHC001', driver:'Kwame', type:'Delivery', date:new Date().toISOString(), requestId:'R-1001', notes:'Delivered to site A' }
+  ];
+  save(LS.fleet, fleet);
+
+  alert('Demo data seeded. You may sign in with ADMIN01 / admin123 or EMP001 / emp123');
+}
+
+/* -------------------------
+  AUTH / CURRENT USER
+   ------------------------- */
+let currentUser = null;
+
+function login(userCode, password){
+  const users = load(LS.users) || [];
+  const u = users.find(x => x.code.toUpperCase() === userCode.toUpperCase());
+  if(!u) return { ok:false, msg:'User not found' };
+  if(u.pass !== password) return { ok:false, msg:'Incorrect password' };
+  currentUser = u;
+  sessionStorage.setItem('mvp_current', JSON.stringify(u));
+  return { ok:true, user:u };
+}
+function logout(){
+  currentUser = null;
+  sessionStorage.removeItem('mvp_current');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+function loadCurrent(){
+  const s = sessionStorage.getItem('mvp_current');
+  currentUser = s ? JSON.parse(s) : null;
+  return currentUser;
+}
+
+/* -------------------------
+  HELPER UI FUNCTIONS
+   ------------------------- */
+function showView(name){
+  document.querySelectorAll('[id^="view-"]').forEach(el=>{
+    el.style.display = el.id === 'view-'+name ? 'block' : 'none';
+  });
+  // set active nav
+  document.querySelectorAll('.nav-item').forEach(it=>{
+    it.classList.toggle('active', it.dataset.view === name);
+  });
+  // update charts when reports shown
+  if(name === 'reports') renderReports();
+  if(name === 'dashboard') renderDashboard();
+}
+
+function openModal(html){
+  const modal = document.getElementById('modal');
+  document.getElementById('modalContent').innerHTML = html;
+  modal.style.display = 'flex';
+  modal.classList.add('show');
+}
+function closeModal(){
+  const modal = document.getElementById('modal');
+  modal.style.display = 'none';
+  modal.classList.remove('show');
+}
+
+/* -------------------------
+  APPLICATION RENDERS
+   ------------------------- */
+function renderSidebar(){
+  if(!currentUser) return;
+  document.getElementById('sidebarAvatar').innerText = currentUser.code.slice(0,2);
+  document.getElementById('sidebarName').innerText = currentUser.name;
+  document.getElementById('sidebarRole').innerText = currentUser.role.replace('_',' ').toUpperCase();
+  document.getElementById('welcomeLine').innerText = (currentUser.role === 'employee') ? 'Employee Portal' : (currentUser.role === 'warehouse_admin' ? 'Warehouse Admin' : 'System Admin');
+  document.getElementById('welcomeName').innerText = currentUser.code + ' • ' + currentUser.name;
+  // show/hide nav items by role
+  const role = currentUser.role;
+  // Super admin can see all; warehouse admin can't see users management maybe; employees limited
+  document.querySelector('[data-view="users"]').style.display = (role === 'super_admin') ? 'flex' : 'none';
+  // Only admins get product management CRUD
+  document.querySelector('[data-view="products"]').style.display = (role === 'employee') ? 'flex' : 'flex';
+  // Allow quick-request only to employees
+  document.getElementById('btnQuickAdd').style.display = (role === 'employee') ? 'inline-flex' : 'none';
+}
+
+function renderDashboard(){
+  const products = load(LS.products) || [];
+  const requests = load(LS.requests) || [];
+  const fleet = load(LS.fleet) || [];
+  document.getElementById('statProducts').innerText = products.length;
+  document.getElementById('statRequests').innerText = requests.length;
+  document.getElementById('statFleet').innerText = fleet.length;
+  const top = products.slice().sort((a,b)=> (getProductRequestsCount(b.id) - getProductRequestsCount(a.id)))[0];
+  document.getElementById('statTopProduct').innerText = top ? 'Top: '+top.name : 'Top: —';
+  document.getElementById('statPending').innerText = 'Pending: ' + requests.filter(r=>r.status==='pending').length;
+  document.getElementById('statLastFleet').innerText = fleet.length ? new Date(fleet[fleet.length-1].date).toLocaleString() : '—';
+
+  // small product cards
+  const dashProducts = document.getElementById('dashProducts');
+  dashProducts.innerHTML = '';
+  products.slice(0,6).forEach(p=>{
+    const div = document.createElement('div');
+    div.className = 'product';
+    div.innerHTML = `
+      <div style="display:flex;gap:8px;align-items:center">
+        <div style="width:60px;height:60px;border-radius:8px;background:linear-gradient(180deg,#0ea5a4,#3b82f6);display:flex;align-items:center;justify-content:center;font-weight:700">
+          <i class="fa-solid fa-box"></i>
+        </div>
+        <div style="flex:1">
+          <div class="title">${p.name}</div>
+          <div class="muted">${p.category}</div>
+        </div>
+        <div>
+          <div class="badge ${p.stock<20 ? 'stock-low' : ''}">${p.stock} in stock</div>
+        </div>
+      </div>
+    `;
+    dashProducts.appendChild(div);
+  });
+
+  // recent requests table
+  const tbody = document.getElementById('recentRequests');
+  tbody.innerHTML = '';
+  requests.slice().reverse().slice(0,6).forEach(r=>{
+    const tr = document.createElement('tr');
+    const emp = getUser(r.employee)?.name || r.employee;
+    const prod = getProduct(r.productId)?.name || r.productId;
+    tr.innerHTML = `<td>${r.id}</td><td>${emp}</td><td>${prod}</td><td>${r.qty}</td><td><span class="badge">${r.status}</span></td><td><button class="btn ghost" onclick="viewRequest('${r.id}')"><i class="fa-solid fa-eye"></i></button></td>`;
+    tbody.appendChild(tr);
+  });
+
+  // trend chart
+  renderTrendChart();
+}
+
+function renderProducts(){
+  const list = document.getElementById('productList');
+  const table = document.getElementById('productTable');
+  const prods = load(LS.products) || [];
+  list.innerHTML = ''; table.innerHTML = '';
+  prods.forEach(p=>{
+    // card view
+    const card = document.createElement('div');
+    card.className = 'product';
+    card.innerHTML = `
+      <div class="meta">
+        <div style="display:flex;gap:10px;align-items:center">
+          <div style="width:48px;height:48px;border-radius:8px;background:linear-gradient(180deg,#06b6d4,#7c3aed);display:flex;align-items:center;justify-content:center;font-weight:700"><i class="fa-solid fa-box"></i></div>
+          <div>
+            <div class="title">${p.name}</div>
+            <div class="muted">${p.category}</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div class="badge ${p.stock<20 ? 'stock-low' : ''}">${p.stock} pcs</div>
+          <div class="muted" style="font-size:12px">${new Date(p.added).toLocaleDateString()}</div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="color:var(--muted);font-size:13px">${p.id}</div>
+        <div>
+          <button class="btn ghost" onclick="openEditProduct('${p.id}')"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn ghost" onclick="archiveProduct('${p.id}')"><i class="fa-solid fa-archive"></i></button>
+          <button class="btn" onclick="quickRequestProduct('${p.id}')"><i class="fa-solid fa-cart-plus"></i></button>
+        </div>
+      </div>
+    `;
+    list.appendChild(card);
+
+    // table row
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${p.name}</td><td>${p.category}</td><td>${p.stock}</td><td>${new Date(p.added).toLocaleDateString()}</td>
+      <td class="row-actions">
+        <button class="btn ghost" onclick="openEditProduct('${p.id}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn ghost" onclick="archiveProduct('${p.id}')"><i class="fa-solid fa-trash"></i></button>
+      </td>`;
+    table.appendChild(tr);
+  });
+}
+
+function renderRequests(filter='all'){
+  const tbody = document.getElementById('requestsTable');
+  const requests = (load(LS.requests) || []).slice().reverse();
+  tbody.innerHTML = '';
+  const filtered = requests.filter(r => filter === 'all' ? true : r.status === filter);
+  filtered.forEach(r=>{
+    const emp = getUser(r.employee)?.name || r.employee;
+    const prod = getProduct(r.productId)?.name || r.productId;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r.id}</td><td>${emp}</td><td>${prod}</td><td>${r.qty}</td><td>${new Date(r.date).toLocaleString()}</td><td>${r.status}</td>
+      <td>
+        <button class="btn ghost" onclick="viewRequest('${r.id}')"><i class="fa-solid fa-eye"></i></button>
+        ${ (currentUser && (currentUser.role !== 'employee')) ? `<button class="btn" onclick="approveRequest('${r.id}')"><i class="fa-solid fa-check"></i></button>
+        <button class="btn ghost" style="background:transparent;border:1px solid rgba(255,0,0,0.06);color:var(--danger)" onclick="denyRequest('${r.id}')"><i class="fa-solid fa-ban"></i></button>` : ''}
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderFleet(){
+  const tbl = document.getElementById('fleetTable');
+  const select = document.getElementById('fleetRequest');
+  const fleet = load(LS.fleet) || [];
+  const requests = load(LS.requests) || [];
+  tbl.innerHTML = ''; select.innerHTML = '<option value="">None</option>';
+
+  requests.forEach(r => {
+    const opt = document.createElement('option'); opt.value = r.id; opt.innerText = `${r.id} • ${getUser(r.employee)?.name || r.employee}`;
+    select.appendChild(opt);
+  });
+
+  fleet.slice().reverse().forEach(f=>{
+    const tr = document.createElement('tr')
+    tr.innerHTML = `<td>${f.id}</td><td>${f.vehicle}</td><td>${f.driver}</td><td>${f.type}</td><td>${new Date(f.date).toLocaleDateString()}</td><td>${f.requestId || '-'}</td>`;
+    tbl.appendChild(tr);
+  });
+}
+
+function renderUsers(){
+  const users = load(LS.users) || [];
+  const tbody = document.getElementById('usersTable');
+  tbody.innerHTML='';
+  users.forEach(u=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${u.code}</td><td>${u.name}</td><td>${u.email}</td><td>${u.role}</td>
+      <td>
+        <button class="btn ghost" onclick="editUser('${u.code}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn ghost" onclick="deleteUser('${u.code}')"><i class="fa-solid fa-trash"></i></button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* -------------------------
+  BUSINESS LOGIC
+   ------------------------- */
+function getUser(code){ const users = load(LS.users) || []; return users.find(u => u.code === code); }
+function getProduct(id){ const products = load(LS.products) || []; return products.find(p => p.id === id); }
+function getProductRequestsCount(productId){ const reqs = load(LS.requests) || []; return reqs.filter(r=>r.productId===productId).reduce((s,r)=> s + (r.qty||0), 0); }
+
+function addProduct(obj){
+  const products = load(LS.products) || [];
+  products.push(obj);
+  save(LS.products, products);
+  renderProducts();
+  renderDashboard();
+}
+
+function updateProduct(id, patch){
+  const products = load(LS.products) || [];
+  const idx = products.findIndex(p=>p.id===id);
+  if(idx>=0){ products[idx] = {...products[idx], ...patch}; save(LS.products, products); }
+  renderProducts(); renderDashboard();
+}
+
+function archiveProduct(id){
+  if(!confirm('Archive this product?')) return;
+  const products = load(LS.products) || [];
+  const idx = products.findIndex(p=>p.id===id);
+  if(idx>=0){ products.splice(idx,1); save(LS.products, products); }
+  renderProducts(); renderDashboard();
+}
+
+function createRequest({productId, employee, qty, notes}){
+  const requests = load(LS.requests) || [];
+  const newId = 'R-'+(1000 + (requests.length+1));
+  const req = { id:newId, productId, employee, qty: Number(qty), notes: notes||'', date:new Date().toISOString(), status:'pending', approvedBy:null };
+  requests.push(req);
+  save(LS.requests, requests);
+  renderRequests(document.getElementById('filterRequests').value);
+  renderDashboard();
+  alert('Request submitted: ' + newId);
+}
+
+function approveRequest(id){
+  const requests = load(LS.requests) || [];
+  const r = requests.find(x=>x.id===id);
+  if(!r) return alert('Not found');
+  if(!confirm('Approve request '+id+'?')) return;
+  r.status = 'approved';
+  r.approvedBy = currentUser ? currentUser.code : 'SYSTEM';
+  // reduce stock
+  const p = getProduct(r.productId);
+  if(p){ p.stock = Math.max(0, p.stock - r.qty); updateProduct(p.id, {stock: p.stock}); save(LS.requests, requests); }
+  save(LS.requests, requests);
+  renderRequests(document.getElementById('filterRequests').value);
+  renderDashboard();
+}
+
+function denyRequest(id){
+  const requests = load(LS.requests) || [];
+  const r = requests.find(x=>x.id===id);
+  if(!r) return alert('Not found');
+  if(!confirm('Deny request '+id+'?')) return;
+  r.status = 'denied';
+  r.approvedBy = currentUser ? currentUser.code : 'SYSTEM';
+  save(LS.requests, requests);
+  renderRequests(document.getElementById('filterRequests').value);
+  renderDashboard();
+}
+
+/* -------------------------
+  FLEET LOGIC
+   ------------------------- */
+function saveFleetActivity(){
+  const vehicle = document.getElementById('fleetVehicle').value.trim();
+  const driver = document.getElementById('fleetDriver').value.trim();
+  const type = document.getElementById('fleetType').value;
+  const requestId = document.getElementById('fleetRequest').value;
+  const notes = document.getElementById('fleetNotes').value;
+  if(!vehicle || !driver) return alert('Provide vehicle and driver.');
+  const fleet = load(LS.fleet) || [];
+  const id = 'F-'+(fleet.length+1);
+  fleet.push({ id, vehicle, driver, type, date:new Date().toISOString(), requestId: requestId||null, notes });
+  save(LS.fleet, fleet);
+  renderFleet();
+  renderDashboard();
+}
+
+/* -------------------------
+  USERS LOGIC
+   ------------------------- */
+function addUser(u){
+  const users = load(LS.users) || [];
+  if(users.some(x=>x.code === u.code)) return alert('User code exists');
+  users.push(u);
+  save(LS.users, users);
+  renderUsers();
+}
+
+/* -------------------------
+  UI EVENTS / BINDINGS
+   ------------------------- */
+document.getElementById('btnSeedDemo').addEventListener('click', ()=>{ seedDemoData(true); location.reload(); });
+document.getElementById('btnLogin').addEventListener('click', ()=>{
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  const res = login(u,p);
+  if(!res.ok) return alert(res.msg);
+  // show app
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'grid';
+  loadApp();
+});
+
+document.getElementById('btnLogout').addEventListener('click', ()=>{ if(confirm('Log out?')) logout(); });
+
+document.querySelectorAll('.nav-item').forEach(it=> it.addEventListener('click', ()=> showView(it.dataset.view) ));
+
+document.getElementById('globalSearch').addEventListener('input', (e)=>{
+  const q = e.target.value.toLowerCase();
+  // simple search: filter products and requests in table
+  document.querySelectorAll('#productList .product').forEach(card=>{
+    card.style.display = (card.innerText.toLowerCase().includes(q)) ? 'block' : 'none';
+  });
+});
+
+// quick add / new request buttons
+document.getElementById('btnQuickAdd').addEventListener('click', ()=> openNewRequestModal(currentUser.code));
+document.getElementById('btnNewRequest').addEventListener('click', ()=> openNewRequestModal(currentUser.code));
+document.getElementById('btnAddProduct').addEventListener('click', ()=> openAddProductModal());
+document.getElementById('btnAddUser').addEventListener('click', ()=> openAddUserModal());
+document.getElementById('btnAddFleet').addEventListener('click', ()=> document.getElementById('fleetVehicle').focus());
+document.getElementById('btnSaveFleet').addEventListener('click', saveFleetActivity);
+document.getElementById('filterRequests').addEventListener('change', (e)=> renderRequests(e.target.value));
+document.getElementById('btnImportSample').addEventListener('click', ()=> { seedDemoProducts(); renderProducts(); });
+
+document.getElementById('btnToggleSidebar').addEventListener('click', ()=> {
+  const side = document.querySelector('.sidebar');
+  side.style.display = side.style.display === 'none' ? 'flex' : 'none';
+});
+
+/* -------------------------
+  MODALS / FORMS
+   ------------------------- */
+
+function openAddProductModal(){
+  openModal(`
+    <h3>Add Product</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+      <div><label>Product ID</label><input id="m_p_id" placeholder="P010"></div>
+      <div><label>Category</label><input id="m_p_cat" placeholder="Category"></div>
+      <div style="grid-column:1/-1"><label>Name</label><input id="m_p_name" placeholder="Product name"></div>
+      <div><label>Stock</label><input id="m_p_stock" type="number" value="0"></div>
+      <div style="grid-column:1/-1"><label>Image URL (optional)</label><input id="m_p_img"></div>
+    </div>
+    <div style="margin-top:12px;text-align:right">
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn" onclick="submitAddProduct()">Save</button>
+    </div>
+  `);
+}
+
+function submitAddProduct(){
+  const id = document.getElementById('m_p_id').value.trim() || 'P'+Math.floor(Math.random()*9000+1000);
+  const name = document.getElementById('m_p_name').value.trim();
+  const cat = document.getElementById('m_p_cat').value.trim() || 'General';
+  const stock = Number(document.getElementById('m_p_stock').value) || 0;
+  const img = document.getElementById('m_p_img').value.trim();
+  if(!name) return alert('Provide product name');
+  addProduct({ id, name, category:cat, stock, img, added: new Date().toISOString() });
+  closeModal();
+}
+
+function openEditProduct(id){
+  const p = getProduct(id);
+  if(!p) return alert('Product not found');
+  openModal(`
+    <h3>Edit Product</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+      <div><label>Product ID</label><input id="m_e_id" value="${p.id}" disabled></div>
+      <div><label>Category</label><input id="m_e_cat" value="${escapeHtml(p.category)}"></div>
+      <div style="grid-column:1/-1"><label>Name</label><input id="m_e_name" value="${escapeHtml(p.name)}"></div>
+      <div><label>Stock</label><input id="m_e_stock" type="number" value="${p.stock}"></div>
+      <div style="grid-column:1/-1"><label>Image URL</label><input id="m_e_img" value="${escapeHtml(p.img||'')}"></div>
+    </div>
+    <div style="margin-top:12px;text-align:right">
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn" onclick="submitEditProduct('${p.id}')">Save</button>
+    </div>
+  `);
+}
+
+function submitEditProduct(id){
+  const cat = document.getElementById('m_e_cat').value.trim();
+  const name = document.getElementById('m_e_name').value.trim();
+  const stock = Number(document.getElementById('m_e_stock').value) || 0;
+  const img = document.getElementById('m_e_img').value.trim();
+  updateProduct(id, { category:cat, name, stock, img });
+  closeModal();
+}
+
+function openNewRequestModal(employeeCode){
+  // product options
+  const products = load(LS.products) || [];
+  const options = products.map(p => `<option value="${p.id}">${p.name} (${p.stock})</option>`).join('');
+  openModal(`
+    <h3>New Product Request</h3>
+    <div style="display:grid;grid-template-columns:1fr 120px;gap:8px;margin-top:12px">
+      <div><label>Product</label><select id="m_r_product">${options}</select></div>
+      <div><label>Qty</label><input id="m_r_qty" type="number" value="1"></div>
+      <div style="grid-column:1/-1"><label>Notes</label><textarea id="m_r_notes"></textarea></div>
+    </div>
+    <div style="margin-top:12px;text-align:right">
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn" onclick="submitNewRequest('${employeeCode}')">Submit Request</button>
+    </div>
+  `);
+}
+
+function submitNewRequest(employee){
+  const productId = document.getElementById('m_r_product').value;
+  const qty = Number(document.getElementById('m_r_qty').value) || 1;
+  const notes = document.getElementById('m_r_notes').value || '';
+  createRequest({ productId, employee, qty, notes });
+  closeModal();
+}
+
+function quickRequestProduct(productId){
+  openModal(`
+    <h3>Quick Request</h3>
+    <div style="margin-top:12px">
+      <div class="muted">Product: <strong>${escapeHtml(getProduct(productId)?.name || productId)}</strong></div>
+      <div style="margin-top:8px"><label>Quantity</label><input id="m_q_qty" type="number" value="1"></div>
+      <div style="margin-top:8px"><label>Requesting as</label><input id="m_q_emp" value="${currentUser ? currentUser.code : ''}"></div>
+    </div>
+    <div style="margin-top:12px;text-align:right">
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn" onclick="submitQuickRequest('${productId}')">Request</button>
+    </div>
+  `);
+}
+function submitQuickRequest(productId){
+  const qty = Number(document.getElementById('m_q_qty').value) || 1;
+  const employee = document.getElementById('m_q_emp').value || (currentUser ? currentUser.code : 'EMP001');
+  createRequest({ productId, employee, qty });
+  closeModal();
+}
+
+function viewRequest(id){
+  const r = (load(LS.requests) || []).find(x=>x.id===id);
+  if(!r) return alert('Not found');
+  const prod = getProduct(r.productId);
+  const emp = getUser(r.employee);
+  openModal(`
+    <h3>Request ${r.id}</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+      <div><label>Employee</label><input disabled value="${emp ? emp.name+' • '+emp.code : r.employee}"></div>
+      <div><label>Product</label><input disabled value="${prod ? prod.name : r.productId}"></div>
+      <div><label>Quantity</label><input disabled value="${r.qty}"></div>
+      <div><label>Status</label><input disabled value="${r.status}"></div>
+      <div style="grid-column:1/-1"><label>Notes</label><textarea disabled>${escapeHtml(r.notes||'')}</textarea></div>
+    </div>
+    <div style="margin-top:12px;text-align:right">
+      ${(currentUser && currentUser.role !== 'employee') ? `<button class="btn" onclick="approveRequest('${r.id}'); closeModal();">Approve</button>
+      <button class="btn ghost" onclick="denyRequest('${r.id}'); closeModal();">Deny</button>` : ''}
+      <button class="btn ghost" onclick="closeModal()">Close</button>
+    </div>
+  `);
+}
+
+/* -------------------------
+  USER MODAL
+   ------------------------- */
+function openAddUserModal(){
+  openModal(`
+    <h3>Add User</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+      <div><label>Code</label><input id="u_code" placeholder="EMP100"></div>
+      <div><label>Role</label><select id="u_role"><option value="employee">employee</option><option value="warehouse_admin">warehouse_admin</option><option value="super_admin">super_admin</option></select></div>
+      <div style="grid-column:1/-1"><label>Name</label><input id="u_name"></div>
+      <div><label>Email</label><input id="u_email"></div>
+      <div><label>Password</label><input id="u_pass" type="password" value="emp123"></div>
+    </div>
+    <div style="margin-top:12px;text-align:right">
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn" onclick="submitAddUser()">Create</button>
+    </div>
+  `);
+}
+
+function submitAddUser(){
+  const code = document.getElementById('u_code').value.trim();
+  const name = document.getElementById('u_name').value.trim();
+  const email = document.getElementById('u_email').value.trim();
+  const pass = document.getElementById('u_pass').value || 'emp123';
+  const role = document.getElementById('u_role').value;
+  if(!code || !name) return alert('Provide code and name');
+  addUser({ id: code, code, name, email, role, pass });
+  closeModal();
+}
+
+function editUser(code){
+  const user = getUser(code);
+  if(!user) return alert('Not found');
+  openModal(`
+    <h3>Edit User</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+      <div><label>Code</label><input id="u_e_code" value="${user.code}" disabled></div>
+      <div><label>Role</label><select id="u_e_role"><option value="employee">employee</option><option value="warehouse_admin">warehouse_admin</option><option value="super_admin">super_admin</option></select></div>
+      <div style="grid-column:1/-1"><label>Name</label><input id="u_e_name" value="${escapeHtml(user.name)}"></div>
+      <div><label>Email</label><input id="u_e_email" value="${escapeHtml(user.email||'')}"></div>
+      <div><label>Password</label><input id="u_e_pass" type="password" value="${escapeHtml(user.pass||'')}"></div>
+    </div>
+    <div style="margin-top:12px;text-align:right">
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn" onclick="submitEditUser('${user.code}')">Save</button>
+    </div>
+  `);
+
+  document.getElementById('u_e_role').value = user.role;
+}
+
+function submitEditUser(code){
+  const users = load(LS.users) || [];
+  const idx = users.findIndex(u=>u.code===code);
+  if(idx<0) return;
+  users[idx].name = document.getElementById('u_e_name').value.trim();
+  users[idx].email = document.getElementById('u_e_email').value.trim();
+  users[idx].pass = document.getElementById('u_e_pass').value || users[idx].pass;
+  users[idx].role = document.getElementById('u_e_role').value;
+  save(LS.users, users);
+  renderUsers();
+  closeModal();
+}
+
+function deleteUser(code){
+  if(!confirm('Delete user '+code+'?')) return;
+  const users = load(LS.users) || [];
+  const idx = users.findIndex(u=>u.code===code);
+  if(idx>=0){ users.splice(idx,1); save(LS.users, users); renderUsers(); }
+}
+
+/* -------------------------
+  REPORTS / CHARTS
+   ------------------------- */
+let statusChart, topChart, timeChart, trendChart;
+
+function renderReports(){
+  const requests = load(LS.requests) || [];
+  const products = load(LS.products) || [];
+
+  // status chart
+  const counts = { pending:0, approved:0, denied:0 };
+  requests.forEach(r => counts[r.status] = (counts[r.status]||0)+1);
+  const ctx1 = document.getElementById('statusChart').getContext('2d');
+  if(statusChart) statusChart.destroy();
+  statusChart = new Chart(ctx1, {
+    type:'pie',
+    data: { labels:['Pending','Approved','Denied'], datasets:[{ data:[counts.pending, counts.approved, counts.denied] }]},
+    options:{plugins:{legend:{labels:{color:'#cfeeff'}}}}
+  });
+
+  // top products chart
+  const top = products.map(p=>({name:p.name, qty:getProductRequestsCount(p.id)})).sort((a,b)=>b.qty-a.qty).slice(0,6);
+  const ctx2 = document.getElementById('topChart').getContext('2d');
+  if(topChart) topChart.destroy();
+  topChart = new Chart(ctx2, {
+    type:'bar',
+    data:{ labels: top.map(t=>t.name), datasets:[{label:'Requested Qty', data: top.map(t=>t.qty)}] },
+    options:{scales:{y:{beginAtZero:true}}}
+  });
+
+  // time chart (requests count per day)
+  const byDay = {};
+  requests.forEach(r=>{
+    const d = new Date(r.date).toLocaleDateString();
+    byDay[d] = (byDay[d] || 0) + 1;
+  });
+  const days = Object.keys(byDay).slice(-12);
+  const ctx3 = document.getElementById('timeChart').getContext('2d');
+  if(timeChart) timeChart.destroy();
+  timeChart = new Chart(ctx3, {
+    type:'line',
+    data:{ labels: days, datasets:[{label:'Requests', fill:true, data: days.map(d=>byDay[d]||0) }] },
+    options:{scales:{y:{beginAtZero:true}}}
+  });
+}
+
+function renderTrendChart(){
+  const requests = load(LS.requests) || [];
+  const byUser = {};
+  requests.forEach(r => byUser[r.employee] = (byUser[r.employee]||0) + 1);
+  const topUsers = Object.entries(byUser).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  if(trendChart) trendChart.destroy();
+  trendChart = new Chart(ctx, {
+    type:'bar',
+    data:{ labels: topUsers.map(t=>getUser(t[0])?.name || t[0]), datasets:[{label:'Requests', data: topUsers.map(t=>t[1])}]},
+    options:{indexAxis:'y',plugins:{legend:{display:false}}}
+  });
+}
+
+/* -------------------------
+  UTIL
+   ------------------------- */
+function escapeHtml(s=''){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+/* -------------------------
+  SEED HELPERS
+   ------------------------- */
+function seedDemoProducts(){
+  const existing = load(LS.products) || [];
+  const more = [
+    { id: 'P010', name:'Concrete Mixer', category:'Equipment', stock:5, img:'', added:new Date().toISOString() },
+    { id: 'P011', name:'Portable Generator', category:'Equipment', stock:3, img:'', added:new Date().toISOString() }
+  ];
+  save(LS.products, existing.concat(more));
+  renderProducts();
+  renderDashboard();
+}
+
+/* -------------------------
+  INITIAL APP LOAD
+   ------------------------- */
+function loadApp(){
+  // ensure seed
+  if(!load(LS.users)) seedDemoData();
+  renderSidebar();
+  renderDashboard();
+  renderProducts();
+  renderRequests();
+  renderFleet();
+  renderUsers();
+  renderReports();
+
+  // show initial view based on role
+  showView('dashboard');
+  document.getElementById('app').style.display = 'grid';
+  document.getElementById('loginScreen').style.display = 'none';
+}
+
+/* on page load */
+window.addEventListener('load', ()=> {
+  const u = loadCurrent();
+  if(u){
+    currentUser = u;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'grid';
+    loadApp();
+  } else {
+    // ensure demo seeded for convenience
+    if(!load(LS.users)) seedDemoData();
+    document.getElementById('loginScreen').style.display = 'flex';
+  }
+});
+
+/* wire up modal close when clicking backdrop */
+document.getElementById('modal').addEventListener('click', (e)=>{
+  if(e.target === e.currentTarget) closeModal();
+});
+
+</script>
+</body>
+</html>
